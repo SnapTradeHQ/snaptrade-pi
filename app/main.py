@@ -119,7 +119,8 @@ def run_forever() -> None:
                 time.sleep(settings.refresh_interval_seconds)
                 continue
 
-            display.render_fetching()
+            if last_summary is None:
+                display.render_fetching()
             last_summary = client.fetch_portfolio_summary(tokens, settings.display_currency)
             last_updated_at = datetime.now()
             display.render_connected(last_summary, last_updated_at)
