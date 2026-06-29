@@ -1,0 +1,16 @@
+[Unit]
+Description=SnapTrade Portfolio Display
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=terry
+WorkingDirectory=/home/terry/snaptrade-pi
+EnvironmentFile=/home/terry/snaptrade-pi/.env
+ExecStart=/home/terry/snaptrade-pi/.venv/bin/python -m app.main
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
