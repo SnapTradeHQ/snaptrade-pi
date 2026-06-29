@@ -11,6 +11,8 @@ class PortfolioSummary:
     currency: str
     partial: bool
     skipped_items: int
+    disabled_connections: int | None = None
+    connection_count: int | None = None
 
 
 def _decimal(value: Any) -> Decimal | None:
@@ -28,12 +30,7 @@ def aggregate_portfolio(items: list[dict[str, Any]], display_currency: str) -> P
 
     for item in items:
         currency = item.get("currency") or item.get("valueCurrency")
-        raw_value = (
-            item.get("value")
-            or item.get("balance")
-            or item.get("market_value")
-            or item.get("marketValue")
-        )
+        raw_value = _first_present(item, "value", "balance", "market_value", "marketValue")
         value = _decimal(raw_value)
         if currency != display_currency or value is None:
             skipped += 1
@@ -53,3 +50,9 @@ def format_money(value: Decimal, currency: str) -> str:
         return f"${value:,.2f}"
     return f"{value:,.2f} {currency}"
 
+
+def _first_present(item: dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        if key in item:
+            return item[key]
+    return None

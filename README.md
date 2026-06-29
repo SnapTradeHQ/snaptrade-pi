@@ -42,6 +42,18 @@ pairing required: open http://127.0.0.1:8088/approve and enter code ABC123
 For mock mode, the complete approval URL is also embedded in the QR preview at
 `/tmp/snaptrade-portfolio-display.png`.
 
+To debug why the footer says `partial`, run:
+
+```sh
+python -m app.debug_accounts
+```
+
+The command reads the saved display token, fetches accounts, and prints which accounts are
+included in or skipped from the displayed total. It does not print OAuth tokens.
+
+If the display footer shows disabled connections, the portfolio total may be stale or incomplete
+for those brokerages. Reconnect them at `https://dashboard.snaptrade.com`.
+
 ## Configuration
 
 Settings are read from `.env` or environment variables:

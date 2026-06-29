@@ -55,15 +55,12 @@ class PortfolioDisplay:
         error_message: str | None = None,
     ) -> DisplayRenderResult:
         def draw_connected(draw: ImageDraw.ImageDraw) -> None:
-            label = "Total Assets"
-            self._centered_text(draw, 8, label, size=13, bold=True)
-
             amount = self._format_display_amount(summary.total, summary.currency)
-            amount_font = self._fit_font(amount, max_width=238, max_size=42, min_size=24, bold=True)
+            amount_font = self._fit_font(amount, max_width=238, max_size=48, min_size=28, bold=True)
             amount_box = draw.textbbox((0, 0), amount, font=amount_font)
             amount_width = amount_box[2] - amount_box[0]
             draw.text(
-                ((WIDTH - amount_width) / 2, 36 - amount_box[1]),
+                ((WIDTH - amount_width) / 2, 18 - amount_box[1]),
                 amount,
                 font=amount_font,
                 fill=0,
@@ -72,16 +69,18 @@ class PortfolioDisplay:
             footer_parts = [f"Updated {updated_at.strftime('%-I:%M %p')}"]
             if summary.partial:
                 footer_parts.append("partial")
+            if summary.disabled_connections:
+                footer_parts.append(f"{summary.disabled_connections} disabled")
             if stale:
                 footer_parts.append("stale")
             footer = " · ".join(footer_parts)
             if stale and error_message:
                 footer = f"{footer} · {error_message[:18]}"
-            footer_font = self._fit_font(footer, max_width=238, max_size=12, min_size=9)
+            footer_font = self._fit_font(footer, max_width=238, max_size=17, min_size=12, bold=True)
             footer_box = draw.textbbox((0, 0), footer, font=footer_font)
             footer_width = footer_box[2] - footer_box[0]
             draw.text(
-                ((WIDTH - footer_width) / 2, HEIGHT - 18 - footer_box[1]),
+                ((WIDTH - footer_width) / 2, HEIGHT - 24 - footer_box[1]),
                 footer,
                 font=footer_font,
                 fill=0,
