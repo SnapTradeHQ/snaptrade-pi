@@ -20,6 +20,7 @@ class Settings:
     api_base_url: str
     display_currency: str
     display_rotation: int
+    display_theme: str
     refresh_interval_seconds: int
     token_path: Path
     output_preview_path: Path
@@ -60,6 +61,7 @@ def load_settings(env_file: str | Path | None = None) -> Settings:
         api_base_url=os.environ.get("SNAPTRADE_API_BASE_URL", "http://127.0.0.1:8088"),
         display_currency=os.environ.get("DISPLAY_CURRENCY", "USD"),
         display_rotation=_load_display_rotation(),
+        display_theme=_load_display_theme(),
         refresh_interval_seconds=int(os.environ.get("REFRESH_INTERVAL_SECONDS", "900")),
         token_path=Path(os.environ.get("TOKEN_PATH", default_token_path)),
         output_preview_path=Path(
@@ -73,6 +75,13 @@ def _load_display_rotation() -> int:
     if rotation not in {0, 180}:
         raise ValueError("DISPLAY_ROTATION must be 0 or 180")
     return rotation
+
+
+def _load_display_theme() -> str:
+    theme = os.environ.get("DISPLAY_THEME", "light").lower()
+    if theme not in {"light", "dark"}:
+        raise ValueError("DISPLAY_THEME must be light or dark")
+    return theme
 
 
 def _load_oauth_metadata(url: str) -> dict[str, str]:

@@ -6,3 +6,6 @@ __pycache__/
 .env
 tokens.json
 waveshare_epd/
+/AGENTS.md
+/assets/
+/landing/

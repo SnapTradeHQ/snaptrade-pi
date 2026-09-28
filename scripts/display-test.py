@@ -19,7 +19,11 @@ from app.portfolio import PortfolioSummary  # noqa: E402
 def main() -> None:
     preview_path = Path("/tmp/snaptrade-display-test.png")
     settings = load_settings()
-    display = PortfolioDisplay(preview_path, rotation=settings.display_rotation)
+    display = PortfolioDisplay(
+        preview_path,
+        rotation=settings.display_rotation,
+        theme=settings.display_theme,
+    )
     result = display.render_connected(
         PortfolioSummary(
             total=Decimal("124382.16"),

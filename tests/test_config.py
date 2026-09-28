@@ -41,6 +41,31 @@ def test_load_settings_accepts_display_rotation(monkeypatch) -> None:
     assert settings.display_rotation == 180
 
 
+def test_load_settings_accepts_display_theme(monkeypatch) -> None:
+    for key in list(os.environ):
+        if key.startswith("SNAPTRADE_") or key == "DISPLAY_THEME":
+            monkeypatch.delenv(key)
+    monkeypatch.setenv("DISPLAY_THEME", "dark")
+
+    settings = load_settings()
+
+    assert settings.display_theme == "dark"
+
+
+def test_load_settings_rejects_invalid_display_theme(monkeypatch) -> None:
+    for key in list(os.environ):
+        if key.startswith("SNAPTRADE_") or key == "DISPLAY_THEME":
+            monkeypatch.delenv(key)
+    monkeypatch.setenv("DISPLAY_THEME", "midnight")
+
+    try:
+        load_settings()
+    except ValueError as exc:
+        assert "DISPLAY_THEME" in str(exc)
+        return
+    raise AssertionError("expected ValueError")
+
+
 def test_load_settings_rejects_invalid_display_rotation(monkeypatch) -> None:
     for key in list(os.environ):
         if key.startswith("SNAPTRADE_") or key == "DISPLAY_ROTATION":

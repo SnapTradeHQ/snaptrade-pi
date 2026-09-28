@@ -1,135 +1,46 @@
-# SnapTrade Portfolio Display
+# SnapTrade Pi
 
-Prototype Raspberry Pi desk display for a SnapTrade user's connected portfolio value.
+A small Raspberry Pi e-paper display for your SnapTrade portfolio total. Pair it with your own SnapTrade account using device-code OAuth; the app requests read access and cannot place trades. Tokens stay on the Pi in a file readable only by its owner.
 
-Target hardware:
+The reference build uses a Raspberry Pi Zero W, a Waveshare 2.13-inch black-and-white V4 e-Paper HAT (250 × 122), and Raspberry Pi OS Lite 32-bit. The app also runs without display hardware and writes a PNG preview.
 
-- Raspberry Pi Zero 2 W with pre-soldered headers
-- Waveshare 2.13-inch black/white e-Paper HAT, 250 x 122
-- Raspberry Pi OS Lite, Wi-Fi preconfigured through Raspberry Pi Imager
+## Build your own
 
-The app is written to run without the display hardware during development. When the Waveshare
-Python package is unavailable, it writes a PNG preview to `OUTPUT_PREVIEW_PATH`.
+The [build guide](https://pi.snaptra.de/build) has the parts list, assembly photos, and a downloadable DIY kit with the installer. The installer pins the Waveshare driver and configures a systemd service. It matches the working reference device, but has not yet been validated on a freshly flashed SD card.
 
-## Local Development
+The production kit uses a public OAuth client ID, which requires no client secret or developer API key. Configure the display in `.env` after installation. Common settings are `DISPLAY_THEME=dark` or `light`, `DISPLAY_ROTATION=180` or `0`, `DISPLAY_CURRENCY=USD`, and `REFRESH_INTERVAL_SECONDS=900`. Only balances already in the selected currency are totaled; the app does not convert currencies.
+
+## Develop locally
 
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements-dev.txt
 cp .env.example .env
-```
-
-Start the local mock OAuth/API server:
-
-```sh
 python -m app.mock_server
 ```
 
-In another shell, run one display cycle:
+In another shell, activate the same virtual environment and run `python -m app.main --once`. The mock server supplies a local pairing flow and sample portfolio. The generated preview is at `/tmp/snaptrade-portfolio-display.png`. Run `python scripts/display-test.py` for a display-only preview.
+
+The checked-in `.env.example` is for local mock mode. `distribution/production.env.example` holds the production defaults used by the DIY kit. Never commit `.env`, token files, or account data.
+
+## Project layout
+
+- `app/`: OAuth flow, portfolio aggregation, and e-paper rendering
+- `distribution/`: public DIY installer and production settings template
+- `scripts/package-diy.py`: builds a source ZIP from an explicit file allowlist
+- `tests/`: focused unit tests
+- `systemd/`: reference service unit for the original device
+
+To run the tests and style check:
 
 ```sh
-python -m app.main --once
+python -m pytest
+python -m ruff check .
 ```
 
-The first run enters pairing mode. Open the approval URL embedded in the generated QR code, or
-use the app log line:
+If a brokerage connection is disabled, reconnect it through the [SnapTrade dashboard](https://dashboard.snaptrade.com/). The `partial` indicator means some balances were omitted, such as accounts in another currency. The `stale` indicator means a refresh failed and the last image remains visible.
 
-```text
-pairing required: open http://127.0.0.1:8088/approve and enter code ABC123
-```
+## License
 
-For mock mode, the complete approval URL is also embedded in the QR preview at
-`/tmp/snaptrade-portfolio-display.png`.
-
-To debug why the footer says `partial`, run:
-
-```sh
-python -m app.debug_accounts
-```
-
-The command reads the saved display token, fetches accounts, and prints which accounts are
-included in or skipped from the displayed total. It does not print OAuth tokens.
-
-If the display footer shows disabled connections, the portfolio total may be stale or incomplete
-for those brokerages. Reconnect them at `https://dashboard.snaptrade.com`.
-
-## Configuration
-
-Settings are read from `.env` or environment variables:
-
-```text
-SNAPTRADE_ENV=mock
-SNAPTRADE_CLIENT_ID=snaptrade-pi-dev
-SNAPTRADE_DEVICE_AUTHORIZATION_URL=http://127.0.0.1:8088/v1/oauth/device_authorization/
-SNAPTRADE_TOKEN_URL=http://127.0.0.1:8088/v1/oauth/token/
-SNAPTRADE_REVOKE_URL=http://127.0.0.1:8088/v1/oauth/revoke_token/
-SNAPTRADE_API_BASE_URL=http://127.0.0.1:8088
-SNAPTRADE_SCOPES=accounts:read holdings:read
-DISPLAY_CURRENCY=USD
-REFRESH_INTERVAL_SECONDS=900
-```
-
-Tokens are stored at:
-
-```text
-~/.config/snaptrade-portfolio-display/tokens.json
-```
-
-The token file is written with `0600` permissions. The app does not log token values, refresh
-tokens, or device codes.
-
-## Raspberry Pi Install
-
-On the Pi:
-
-```sh
-sudo apt update
-sudo apt install -y git python3-venv python3-pip python3-pil python3-spidev python3-rpi.gpio python3-numpy fonts-dejavu-core
-git clone <repo-url> /home/terry/snaptrade-pi
-cd /home/terry/snaptrade-pi
-sh scripts/install-pi.sh
-```
-
-Edit `.env`, then install the service:
-
-```sh
-sudo cp systemd/snaptrade-portfolio-display.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now snaptrade-portfolio-display
-journalctl -u snaptrade-portfolio-display -f
-```
-
-If you are using the Waveshare display, copy the vendor `waveshare_epd` folder into the project for
-your HAT revision before starting the service.
-
-## E-Paper Display Test
-
-After enabling SPI and attaching the Waveshare HAT, run:
-
-```sh
-python scripts/display-test.py
-```
-
-If the Waveshare driver is installed and the display is connected correctly, the e-paper screen
-should show a SnapTrade test portfolio value. If the driver is missing, the script still writes a
-PNG preview to `/tmp/snaptrade-display-test.png`.
-
-## Current Scope
-
-Implemented:
-
-- Device-code OAuth polling state machine
-- Local mock OAuth/API server
-- Local `0600` token storage
-- Portfolio aggregation with explicit partial-data handling
-- PNG display previews and optional Waveshare hardware rendering
-- `systemd` unit for boot-time startup
-- Focused unit tests
-
-Still expected before a real SnapTrade run:
-
-- Replace mock URLs with real SnapTrade device-code OAuth endpoints when available
-- Confirm the real portfolio endpoint shape and adapt `SnapTradeClient`
-- Add access-token refresh once the production token contract is finalized
-- Add a physical disconnect/reset button or CLI command
+The software is available under the [MIT License](LICENSE). SnapTrade names and logos are not licensed for reuse by this software license. The Waveshare driver is downloaded separately from its upstream project during installation.

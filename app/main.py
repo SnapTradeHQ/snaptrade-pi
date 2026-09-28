@@ -64,7 +64,11 @@ def get_valid_tokens(
 def run_once() -> None:
     settings = load_settings()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    display = PortfolioDisplay(settings.output_preview_path, rotation=settings.display_rotation)
+    display = PortfolioDisplay(
+        settings.output_preview_path,
+        rotation=settings.display_rotation,
+        theme=settings.display_theme,
+    )
     store = TokenStore(settings.token_path)
     oauth = DeviceFlowClient(
         settings.device_authorization_url,
@@ -89,7 +93,11 @@ def run_once() -> None:
 def run_forever() -> None:
     settings = load_settings()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    display = PortfolioDisplay(settings.output_preview_path, rotation=settings.display_rotation)
+    display = PortfolioDisplay(
+        settings.output_preview_path,
+        rotation=settings.display_rotation,
+        theme=settings.display_theme,
+    )
     store = TokenStore(settings.token_path)
     oauth = DeviceFlowClient(
         settings.device_authorization_url,

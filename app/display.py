@@ -22,25 +22,26 @@ class DisplayRenderResult:
 
 
 class PortfolioDisplay:
-    def __init__(self, preview_path: Path, rotation: int = 0) -> None:
+    def __init__(self, preview_path: Path, rotation: int = 0, theme: str = "light") -> None:
         self.preview_path = preview_path
         self.rotation = rotation
+        self.background_color, self.foreground_color = self._theme_colors(theme)
         self.hardware = self._load_waveshare()
 
     def render_boot(self, message: str = "Booting") -> DisplayRenderResult:
-        return self._render(lambda draw: self._center_text(draw, "SnapTrade", message))
+        return self._render(lambda draw, _image: self._center_text(draw, "SnapTrade", message))
 
     def render_wifi_unavailable(self) -> DisplayRenderResult:
-        return self._render(lambda draw: self._center_text(draw, "Wi-Fi unavailable", "Check setup"))
+        return self._render(lambda draw, _image: self._center_text(draw, "Wi-Fi unavailable", "Check setup"))
 
     def render_fetching(self) -> DisplayRenderResult:
-        return self._render(lambda draw: self._center_text(draw, "SnapTrade", "Fetching portfolio"))
+        return self._render(lambda draw, _image: self._center_text(draw, "SnapTrade", "Fetching portfolio"))
 
     def render_pairing(self, verification_uri_complete: str, user_code: str) -> DisplayRenderResult:
-        def draw_pairing(draw: ImageDraw.ImageDraw) -> None:
+        def draw_pairing(draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
             self._text(draw, (8, 6), "Connect SnapTrade", size=15)
             qr = qrcode.make(verification_uri_complete).resize((70, 70))
-            draw.bitmap((8, 34), qr.convert("1"), fill=0)
+            image.paste(qr.convert("1"), (8, 34))
             self._text(draw, (88, 34), "Scan or enter:", size=12)
             self._text(draw, (88, 54), user_code, size=22)
             self._text(draw, (88, 86), "Waiting for approval", size=12)
@@ -54,7 +55,7 @@ class PortfolioDisplay:
         stale: bool = False,
         error_message: str | None = None,
     ) -> DisplayRenderResult:
-        def draw_connected(draw: ImageDraw.ImageDraw) -> None:
+        def draw_connected(draw: ImageDraw.ImageDraw, _image: Image.Image) -> None:
             amount = self._format_display_amount(summary.total, summary.currency)
             amount_font = self._fit_font(amount, max_width=238, max_size=48, min_size=28, bold=True)
             amount_box = draw.textbbox((0, 0), amount, font=amount_font)
@@ -63,7 +64,7 @@ class PortfolioDisplay:
                 ((WIDTH - amount_width) / 2, 18 - amount_box[1]),
                 amount,
                 font=amount_font,
-                fill=0,
+                fill=self.foreground_color,
             )
 
             footer_parts = [f"Updated {updated_at.strftime('%-I:%M %p')}"]
@@ -83,18 +84,18 @@ class PortfolioDisplay:
                 ((WIDTH - footer_width) / 2, HEIGHT - 24 - footer_box[1]),
                 footer,
                 font=footer_font,
-                fill=0,
+                fill=self.foreground_color,
             )
 
         return self._render(draw_connected)
 
     def render_reconnect_needed(self) -> DisplayRenderResult:
-        return self._render(lambda draw: self._center_text(draw, "Reconnect needed", "Start pairing again"))
+        return self._render(lambda draw, _image: self._center_text(draw, "Reconnect needed", "Start pairing again"))
 
     def _render(self, draw_fn) -> DisplayRenderResult:
-        image = Image.new("1", (WIDTH, HEIGHT), 255)
+        image = Image.new("1", (WIDTH, HEIGHT), self.background_color)
         draw = ImageDraw.Draw(image)
-        draw_fn(draw)
+        draw_fn(draw, image)
         if self.rotation == 180:
             image = image.rotate(180)
         self.preview_path.parent.mkdir(parents=True, exist_ok=True)
@@ -122,6 +123,14 @@ class PortfolioDisplay:
             return epd2in13_V4.EPD()
         except Exception:
             return None
+
+    @staticmethod
+    def _theme_colors(theme: str) -> tuple[int, int]:
+        if theme == "light":
+            return 255, 0
+        if theme == "dark":
+            return 0, 255
+        raise ValueError("DISPLAY_THEME must be light or dark")
 
     @staticmethod
     def _format_display_amount(value: Decimal, currency: str) -> str:
@@ -171,7 +180,7 @@ class PortfolioDisplay:
         return self._font(min_size, bold=bold)
 
     def _text(self, draw: ImageDraw.ImageDraw, xy: tuple[int, int], text: str, size: int) -> None:
-        draw.text(xy, text, font=self._font(size), fill=0)
+        draw.text(xy, text, font=self._font(size), fill=self.foreground_color)
 
     def _centered_text(
         self,
@@ -183,17 +192,27 @@ class PortfolioDisplay:
     ) -> None:
         font = self._font(size, bold=bold)
         box = draw.textbbox((0, 0), text, font=font)
-        draw.text(((WIDTH - (box[2] - box[0])) / 2, y - box[1]), text, font=font, fill=0)
+        draw.text(
+            ((WIDTH - (box[2] - box[0])) / 2, y - box[1]),
+            text,
+            font=font,
+            fill=self.foreground_color,
+        )
 
     def _center_text(self, draw: ImageDraw.ImageDraw, title: str, subtitle: str) -> None:
         title_font = self._font(18)
         subtitle_font = self._font(13)
         title_box = draw.textbbox((0, 0), title, font=title_font)
         subtitle_box = draw.textbbox((0, 0), subtitle, font=subtitle_font)
-        draw.text(((WIDTH - (title_box[2] - title_box[0])) / 2, 38), title, font=title_font, fill=0)
+        draw.text(
+            ((WIDTH - (title_box[2] - title_box[0])) / 2, 38),
+            title,
+            font=title_font,
+            fill=self.foreground_color,
+        )
         draw.text(
             ((WIDTH - (subtitle_box[2] - subtitle_box[0])) / 2, 67),
             subtitle,
             font=subtitle_font,
-            fill=0,
+            fill=self.foreground_color,
         )
